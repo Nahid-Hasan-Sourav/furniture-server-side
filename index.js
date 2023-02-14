@@ -28,7 +28,7 @@ async function run() {
 run();
 
 const userCollection = client.db("furniture").collection("allUsers");
-
+//USER REGISTRATION
 app.put("/create-user", async (req, res) => {
   try {
     const user = req.body;
@@ -61,7 +61,7 @@ app.put("/create-user", async (req, res) => {
     });
   }
 });
-
+//USER LOGIN ROUTE
 app.post("/user-login", async (req, res) => {
   try {
     const loginInfo = req.body;
@@ -102,6 +102,7 @@ app.post("/user-login", async (req, res) => {
         userInfo: loginInfo,
         message: `Successfully Login`,
         anotherMessage: "Congratulation",
+        user:user,
       });
     }
   } catch (err) {
@@ -112,6 +113,73 @@ app.post("/user-login", async (req, res) => {
     });
   }
 });
+
+//FORGOT PASSWORD 
+app.put('/forgot-password',async (req,res)=>{
+    try{
+        const {email,password}=req.body;
+        const filter={email:email};
+        const options ={upsert:true};
+        const exactUser=await userCollection.findOne(filter);
+        console.log("Exact user : ",exactUser);
+        if(!exactUser){
+            res.send({
+                success:false,
+                message:`The ${email} is not valid`
+            })
+        }
+        else{
+            
+            const updateDoc={
+                $set:{
+                    password:password
+                }
+            }
+            const result=await userCollection.updateOne(filter,updateDoc,options)
+            console.log("Password Update ",result)
+            res.send({
+                message:"password reset  succesfully",
+                result,
+                user:exactUser
+            })
+
+        }
+    }
+    catch(err){
+        console.log("Error is ", err);
+        res.send({
+          success: false,
+          message: err.message,
+        });
+    }
+
+
+})
+
+ //  GET SINGLE USER FOR CHECKING HIS/HER ROLE
+ app.get('/user/:email', async (req, res) => {
+    try{
+        const email = req.params.email;
+        const query = { email: email };
+        const user = await userCollection.findOne(query);
+        // console.log(user.role)
+        res.send(user);
+    }
+    catch(err){
+        console.log("Error is ", err);
+        res.send({
+          success: false,
+          message: err.message,
+        });
+    }
+  })
+
+app.get('/all-user',async (req,res)=>{
+    const query={userRole:"user"};
+    const allUser=await userCollection.find(query).toArray();
+    res.send(allUser)
+})
+
 
 app.get("/", (req, res) => {
   res.send("Simple node server run");
